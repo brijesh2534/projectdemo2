@@ -3,22 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Call Example</title>
+    <title>Top Gainers - Nifty 500 Pre-market</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <h1>API Call from index.html</h1>
-    <button onclick="fetchData()">Fetch Data</button>
-    <div id="output"></div>
+    <div class="container my-5">
+        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
+        <p class="text-center" id="lastUpdated">Last Updated: Loading...</p>
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Stock Symbol</th>
+                    <th>Company Name</th>
+                    <th>Last Price</th>
+                    <th>% Change</th>
+                </tr>
+            </thead>
+            <tbody id="stockData">
+                <!-- Data will be dynamically populated here -->
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        function fetchData() {
-            fetch('api/index.php')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('output').innerHTML = JSON.stringify(data);
-                })
-                .catch(error => console.error('Error:', error));
+        // Function to fetch data from api/index.php
+        function fetchStockData() {
+            $.get("api/index.php", function(data) {
+                // Inject the response HTML into the index.html table
+                $('#stockData').html($(data).find('#stockData').html());
+                $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
+            }).fail(function() {
+                $('#lastUpdated').text("Error: Could not fetch stock data.");
+            });
         }
+
+        // Fetch data initially and set an interval to refresh every 5 seconds
+        fetchStockData();
+        setInterval(fetchStockData, 5000); // 5000ms = 5 seconds
     </script>
 </body>
 </html>
