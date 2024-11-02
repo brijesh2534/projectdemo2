@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Gainers - Nifty 500 Pre-market</title>
+    <title>Top Gainers - Nifty 500</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
     <div class="container my-5">
-        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
-        <p class="text-center" id="lastUpdated">Last Updated: </p>
+        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers</h2>
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
@@ -19,34 +18,47 @@
                     <th>% Change</th>
                 </tr>
             </thead>
-            <tbody id="stockData">
-                <!-- Data will be populated here by JavaScript -->
-            </tbody>
+            <tbody id="stockData"></tbody>
         </table>
     </div>
 
-    <!-- JavaScript to Fetch Data from index.php -->
     <script>
         async function fetchStockData() {
             try {
-                const response = await fetch("index.php");
-                const html = await response.text();
+                const response = await fetch('api/index.php');
+                const data = await response.json();
 
-                // Parse HTML and update table content
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, "text/html");
+                // Check if data is valid
+                if (data.error) {
+                    document.getElementById("stockData").innerHTML = "<tr><td colspan='4'>" + data.error + "</td></tr>";
+                    return;
+                }
 
-                // Extract table rows and last updated time
-                document.getElementById("stockData").innerHTML = doc.getElementById("stockData").innerHTML;
-                document.getElementById("lastUpdated").textContent = doc.getElementById("lastUpdated").textContent;
+                // Filter and sort top gainers
+                const stocks = data.data.filter(stock => stock.pChange > 0);
+                stocks.sort((a, b) => b.pChange - a.pChange);
+
+                // Display the top gainers in the table
+                let rows = "";
+                stocks.slice(0, 10).forEach(stock => {
+                    rows += `
+                        <tr>
+                            <td>${stock.symbol}</td>
+                            <td>${stock.companyName}</td>
+                            <td>₹${stock.lastPrice}</td>
+                            <td>${stock.pChange}%</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById("stockData").innerHTML = rows;
             } catch (error) {
-                console.error("Error fetching data:", error);
+                console.error("Error fetching stock data:", error);
+                document.getElementById("stockData").innerHTML = "<tr><td colspan='4'>Error loading data</td></tr>";
             }
         }
 
-        // Fetch data every 5 seconds
+        // Fetch data on page load
         fetchStockData();
-        setInterval(fetchStockData, 5000); // 5000ms = 5 seconds
     </script>
 </body>
 </html>
