@@ -1,20 +1,24 @@
 <?php
 function fetchStockData($url) {
-    $options = [
-        "http" => [
-            "header" => [
-                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36",
-                "Referer: https://www.nseindia.com",
-            ],
-            "method" => "GET"
-        ]
-    ];
-    $context = stream_context_create($options);
-    $response = file_get_contents($url, false, $context);
+    $ch = curl_init();
 
-    if ($response === false) {
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    
+    // Set headers
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36',
+        'Referer: https://www.nseindia.com',
+        'Accept: application/json',
+    ]);
+
+    $response = curl_exec($ch);
+    
+    if (curl_errno($ch)) {
         return null; // Handle error
     }
+
+    curl_close($ch);
 
     $data = json_decode($response, true);
     return $data['data'] ?? null;
