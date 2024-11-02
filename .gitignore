@@ -1,20 +1,8 @@
-# Ignore composer.lock file
-/composer.lock
+# Install it globally
+npm i -g vercel
 
-# Ignore vendor directory
-/vendor/
+# Log in
+vercel login
 
-# Ignore environment variables
-.env
-
-# Ignore logs
-/logs/*
-/logs/*.log
-
-# Ignore temporary files
-/tmp/
-
-# Ignore IDE and OS specific files
-*.DS_Store
-*.idea/
-.vscode/
+# Let's fly
+vercel
