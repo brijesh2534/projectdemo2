@@ -1,2 +1,20 @@
-# Vercel
-.vercel
+# Ignore composer.lock file
+/composer.lock
+
+# Ignore vendor directory
+/vendor/
+
+# Ignore environment variables
+.env
+
+# Ignore logs
+/logs/*
+/logs/*.log
+
+# Ignore temporary files
+/tmp/
+
+# Ignore IDE and OS specific files
+*.DS_Store
+*.idea/
+.vscode/
