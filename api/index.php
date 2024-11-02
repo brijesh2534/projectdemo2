@@ -1,7 +1,7 @@
 <?php
-if (function_exists('curl_version')) {
-    echo "cURL is enabled.";
+if (function_exists('file_get_contents')) {
+    echo "file_get_contents is enabled.";
 } else {
-    echo "cURL is nott enabled.";
+    echo "file_get_contents is NOT enabled.";
 }
 ?>
