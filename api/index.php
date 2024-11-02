@@ -1,37 +1,28 @@
 <?php
 function fetchStockData($url) {
-    // Create a stream context with headers
-    $options = [
-        'http' => [
-            'header' => [
-                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36',
-                'Referer: https://www.nseindia.com',
-                'Accept: application/json',
-            ],
-            'method' => 'GET',
-        ],
-    ];
+    // Use file_get_contents directly to fetch data
+    $response = file_get_contents($url);
 
-    $context = stream_context_create($options);
-    $response = @file_get_contents($url, false, $context);
-
+    // Check if the response is false (indicating an error)
     if ($response === false) {
-        return null; // Handle error
+        return null; // Handle error gracefully
     }
 
     $data = json_decode($response, true);
-    return $data['data'] ?? null;
+    return $data['data'] ?? null; // Return the data or null if not found
 }
 
+// Define the NSE URL to fetch stock data
 $nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500";
 $data = fetchStockData($nse_url);
 
+// Check if data was fetched successfully
 if ($data === null) {
     echo "Error: Could not fetch stock data.";
-    exit;
+    exit; // Exit if there's an error
 }
 
-// Filter and sort top gainers
+// Filter top gainers
 $stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
 usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
 $lastUpdated = date("Y-m-d H:i:s");
