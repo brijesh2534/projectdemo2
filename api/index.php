@@ -1,33 +1,27 @@
 <?php
-require 'fetchStockData.php';
-
+// Set the NSE API URL
 $nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500";
-$data = fetchStockData($nse_url);
 
-if ($data === null) {
-    echo "<p>Error: Could not fetch stock data after multiple attempts.</p>";
+// Initialize cURL session
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $nse_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36",
+    "Referer: https://www.nseindia.com",
+]);
+
+// Execute the request
+$response = curl_exec($ch);
+curl_close($ch);
+
+// Check if the response is valid
+if ($response === false) {
+    echo json_encode(["error" => "Could not fetch data"]);
     exit;
 }
 
-// Filter and sort top gainers
-$stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
-usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
-$lastUpdated = date("Y-m-d H:i:s"); // Store last updated time
-?>
-
-<!-- HTML output for AJAX request -->
-<p id="lastUpdated">Last Updated: <?php echo $lastUpdated; ?></p>
-<?php
-foreach (array_slice($stocks, 0, 10) as $stock) {
-    $symbol = $stock['symbol'] ?? 'N/A';
-    $companyName = $stock['companyName'] ?? $symbol;
-    $lastPrice = $stock['lastPrice'] ?? 'N/A';
-    $pChange = $stock['pChange'] ?? 'N/A';
-
-    echo "<tr>
-        <td>{$symbol}</td>
-        <td>{$companyName}</td>
-        <td>₹{$lastPrice}</td>
-        <td>{$pChange}%</td>
-    </tr>";
-}
+// Return JSON response
+header("Content-Type: application/json");
+echo $response;
