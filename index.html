@@ -10,7 +10,7 @@
 <body>
     <div class="container my-5">
         <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
-        <p class="text-center" id="lastUpdated">Last Updated: Loading...</p>
+        <p class="text-center" id="lastUpdated">Last Updated: <span id="updateTime"></span></p>
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
@@ -20,27 +20,40 @@
                     <th>% Change</th>
                 </tr>
             </thead>
-            <tbody id="stockData">
-                <!-- Data will be dynamically populated here -->
-            </tbody>
+            <tbody id="stockData"></tbody>
         </table>
     </div>
 
     <script>
-        // Function to fetch data from api/index.php
         function fetchStockData() {
-            $.get("api/index.php", function(data) {
-                // Inject the response HTML into the index.html table
-                $('#stockData').html($(data).find('#stockData').html());
-                $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
-            }).fail(function() {
-                $('#lastUpdated').text("Error: Could not fetch stock data.");
-            });
+            fetch("api/index.php")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    let stockDataHtml = '';
+                    data.forEach(stock => {
+                        stockDataHtml += `
+                            <tr>
+                                <td>${stock.symbol ?? 'N/A'}</td>
+                                <td>${stock.companyName ?? stock.symbol ?? 'N/A'}</td>
+                                <td>₹${stock.lastPrice ?? 'N/A'}</td>
+                                <td>${stock.pChange ?? 'N/A'}%</td>
+                            </tr>
+                        `;
+                    });
+                    document.getElementById('stockData').innerHTML = stockDataHtml;
+                    document.getElementById('updateTime').textContent = new Date().toLocaleString();
+                })
+                .catch(error => console.error('Error fetching stock data:', error));
         }
 
-        // Fetch data initially and set an interval to refresh every 5 seconds
-        fetchStockData();
-        setInterval(fetchStockData, 5000); // 5000ms = 5 seconds
+        // Refresh data every 5 seconds
+        setInterval(fetchStockData, 5000);
+        fetchStockData(); // Initial load
     </script>
 </body>
 </html>
