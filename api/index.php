@@ -1,37 +1,43 @@
 <?php
+// Set the URL of the NSE API
+$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500";
+
+// Function to fetch stock data from the NSE API
 function fetchStockData($url) {
+    // Set HTTP headers, particularly the User-Agent
     $options = [
         "http" => [
             "header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36\r\n"
         ]
     ];
 
+    // Create a stream context with the specified options
     $context = stream_context_create($options);
-    $response = file_get_contents($url, false, $context);
+    
+    // Fetch the response from the API, suppress errors with @
+    $response = @file_get_contents($url, false, $context);
 
+    // Check if the response is false (an error occurred)
     if ($response === false) {
-        return null; // Handle error
+        return null; // Return null to indicate failure
     }
 
+    // Decode the JSON response into an associative array
     $data = json_decode($response, true);
-    return $data['data'] ?? null; // Return data or null if not found
+    return $data['data'] ?? null; // Return the 'data' key if it exists
 }
 
-
-// Define the NSE URL to fetch stock data
-$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500";
+// Fetch the stock data from the API
 $data = fetchStockData($nse_url);
 
-// Check if data was fetched successfully
+// Check if the data was fetched successfully
 if ($data === null) {
-    echo "Error: Could not fetch stock data.";
-    exit; // Exit if there's an error
+    echo "<h2>Error: Could not fetch stock data.</h2>";
+    echo "<p>Please check if the NSE API is accessible.</p>";
+    exit; // Stop further execution
 }
 
-// Filter top gainers
-$stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
-usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
-$lastUpdated = date("Y-m-d H:i:s");
+// Proceed to display the fetched stock data
 ?>
 
 <!DOCTYPE html>
@@ -39,52 +45,33 @@ $lastUpdated = date("Y-m-d H:i:s");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Gainers - Nifty 500 Pre-market</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>NSE Stock Data</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-    <div class="container my-5">
-        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
-        <p class="text-center" id="lastUpdated">Last Updated: <?php echo $lastUpdated; ?></p>
-        <table class="table table-striped table-hover">
+    <div class="container">
+        <h1 class="mt-4">NSE Stock Data</h1>
+
+        <table class="table table-striped mt-4">
             <thead>
                 <tr>
-                    <th>Stock Symbol</th>
-                    <th>Company Name</th>
+                    <th>Symbol</th>
                     <th>Last Price</th>
-                    <th>% Change</th>
+                    <th>Change</th>
+                    <th>Change Percentage</th>
                 </tr>
             </thead>
-            <tbody id="stockData">
-                <?php
-                foreach (array_slice($stocks, 0, 10) as $stock) {
-                    $symbol = $stock['symbol'] ?? 'N/A';
-                    $companyName = $stock['companyName'] ?? $symbol;
-                    $lastPrice = $stock['lastPrice'] ?? 'N/A';
-                    $pChange = $stock['pChange'] ?? 'N/A';
-
-                    echo "<tr>
-                        <td>{$symbol}</td>
-                        <td>{$companyName}</td>
-                        <td>₹{$lastPrice}</td>
-                        <td>{$pChange}%</td>
-                    </tr>";
-                }
-                ?>
+            <tbody>
+                <?php foreach ($data as $stock): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($stock['symbol']); ?></td>
+                        <td><?php echo htmlspecialchars($stock['lastPrice']); ?></td>
+                        <td><?php echo htmlspecialchars($stock['change']); ?></td>
+                        <td><?php echo htmlspecialchars($stock['pChange']); ?>%</td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
-
-    <script>
-        function updateStockData() {
-            $.get("api/index.php", function(data) {
-                $('#stockData').html($(data).find('#stockData').html());
-                $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
-            });
-        }
-
-        setInterval(updateStockData, 5000); // Refresh every 5 seconds
-    </script>
 </body>
 </html>
