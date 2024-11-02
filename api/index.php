@@ -1,24 +1,23 @@
 <?php
 function fetchStockData($url) {
-    $ch = curl_init();
+    // Create a stream context with headers
+    $options = [
+        'http' => [
+            'header' => [
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36',
+                'Referer: https://www.nseindia.com',
+                'Accept: application/json',
+            ],
+            'method' => 'GET',
+        ],
+    ];
 
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    // Set headers
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36',
-        'Referer: https://www.nseindia.com',
-        'Accept: application/json',
-    ]);
+    $context = stream_context_create($options);
+    $response = @file_get_contents($url, false, $context);
 
-    $response = curl_exec($ch);
-    
-    if (curl_errno($ch)) {
+    if ($response === false) {
         return null; // Handle error
     }
-
-    curl_close($ch);
 
     $data = json_decode($response, true);
     return $data['data'] ?? null;
