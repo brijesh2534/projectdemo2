@@ -1,5 +1,6 @@
 <?php
 function fetchStockData($url, $retries = 3) {
+    $startTime = microtime(true); // Start timer
     $options = [
         "http" => [
             "method" => "GET",
@@ -9,7 +10,7 @@ function fetchStockData($url, $retries = 3) {
                 "Referer: https://www.nseindia.com/",
                 "X-Requested-With: XMLHttpRequest"
             ]),
-            "ignore_errors" => true // To allow retries even if we get HTTP errors
+            "ignore_errors" => true
         ]
     ];
 
@@ -19,22 +20,23 @@ function fetchStockData($url, $retries = 3) {
         $response = @file_get_contents($url, false, $context);
 
         if ($response === false) {
-            echo "Attempt " . ($i + 1) . " failed to fetch data.\n";
-            sleep(2); // Wait before retrying
+            error_log("Attempt " . ($i + 1) . " failed to fetch data.");
+            sleep(2);
             continue;
         }
 
         $data = json_decode($response, true);
 
-        // Check if data is structured as expected
         if (isset($data['data']) && is_array($data['data'])) {
+            $endTime = microtime(true); // End timer
+            error_log("Data fetched in " . ($endTime - $startTime) . " seconds.");
             return $data['data'];
         }
 
-        sleep(2); // Wait before retrying if data is not in expected format
+        sleep(2);
     }
 
-    return null; // Return null if all retries fail
+    return null;
 }
 
 // Define the URL for fetching data
