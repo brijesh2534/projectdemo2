@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/fetchNiftyData",
@@ -10,6 +16,12 @@
     {
       "path": "/api/fetchNiftyData",
       "schedule": "*/5 * * * *"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
     }
   ]
 }
