@@ -4,6 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top 10 Gainers - NIFTY 50</title>
+    <script>
+        async function fetchData() {
+            const response = await fetch('/api/fetchNiftyData');
+            const jsonData = await response.json();
+            if (jsonData.data) {
+                updateTable(jsonData.data);
+            } else {
+                console.error('Failed to retrieve data:', jsonData);
+            }
+        }
+
+        function updateTable(data) {
+            const table = document.getElementById('gainersTable');
+            table.innerHTML = ''; // Clear existing rows
+            data.sort((a, b) => b.pChange - a.pChange); // Sort by percentage change
+            const topGainers = data.slice(0, 10); // Get top 10 gainers
+            topGainers.forEach(stock => {
+                const row = table.insertRow();
+                row.innerHTML = `
+                    <td>${stock.symbol}</td>
+                    <td>${stock.lastPrice.toFixed(2)}</td>
+                    <td>${stock.pChange.toFixed(2)}%</td>
+                `;
+            });
+        }
+
+        window.onload = () => {
+            fetchData();
+            setInterval(fetchData, 300000); // Refresh data every 5 minutes
+        };
+    </script>
     <style>
         table {
             width: 50%;
@@ -22,74 +53,12 @@
 </head>
 <body>
     <h1 style="text-align: center;">Top 10 Gainers - NIFTY 50</h1>
-    <p style="text-align: center;" id="lastUpdatedTime">Last Updated: -</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Stock Name</th>
-                <th>LTP (₹)</th>
-                <th>% Change</th>
-            </tr>
-        </thead>
-        <tbody id="gainersTable">
-            <!-- Dynamic content will be injected here -->
-        </tbody>
+    <table id="gainersTable">
+        <tr>
+            <th>Stock Name</th>
+            <th>LTP (₹)</th>
+            <th>% Change</th>
+        </tr>
     </table>
-
-    <script>
-        // Function to format time in 12-hour format
-        function formatTime(dateString) {
-            const date = new Date(dateString);
-            const hours = date.getHours() % 12 || 12;
-            const minutes = date.getMinutes().toString().padStart(2, "0");
-            const ampm = date.getHours() >= 12 ? "PM" : "AM";
-            return `${hours}:${minutes} ${ampm}`;
-        }
-
-        // Function to load data from the serverless function
-        async function loadData() {
-            try {
-                const response = await fetch('/api/fetchNiftyData');
-                const data = await response.json();
-
-                if (!data.data) {
-                    console.error("Error: Data format is incorrect");
-                    return;
-                }
-
-                // Sort by percentage change
-                const sortedData = data.data.sort((a, b) => b.pChange - a.pChange);
-                const topGainers = sortedData.slice(0, 10);
-
-                // Get the last updated time and format it
-                const lastUpdatedTime = formatTime(data.data[0].lastUpdateTime);
-                document.getElementById("lastUpdatedTime").textContent = `Last Updated: ${lastUpdatedTime}`;
-
-                // Populate the table with top gainers
-                const tableBody = document.getElementById("gainersTable");
-                tableBody.innerHTML = ""; // Clear previous data
-
-                topGainers.forEach(stock => {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${stock.symbol}</td>
-                        <td>${stock.lastPrice.toFixed(2)}</td>
-                        <td>${stock.pChange.toFixed(2)}%</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
-            } catch (error) {
-                console.error("Failed to fetch data:", error);
-            }
-        }
-
-        // Initial data load
-        loadData();
-
-        // Auto-refresh every 5 minutes (300000 milliseconds)
-        setInterval(loadData, 300000);
-    </script>
 </body>
 </html>
