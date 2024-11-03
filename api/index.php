@@ -1,48 +1,43 @@
 <?php
-// Fetch stock data from NSE API with retry functionality and cURL cookie handling
 function fetchStockData($url, $retries = 3) {
-    $cookieFile = tempnam(sys_get_temp_dir(), 'cookie'); // Temporary file for cookies
-    $ch = curl_init();
+    $options = [
+        "http" => [
+            "method" => "GET",
+            "header" => implode("\r\n", [
+                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
+                "Accept: application/json, text/plain, */*",
+                "Referer: https://www.nseindia.com/",
+                "X-Requested-With: XMLHttpRequest"
+            ]),
+            "ignore_errors" => true // To allow retries even if we get HTTP errors
+        ]
+    ];
 
-    // Set cURL options
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile); // Store cookies
-    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile); // Send cookies
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-        "Accept: application/json, text/plain, */*",
-        "Referer: https://www.nseindia.com/",
-        "X-Requested-With: XMLHttpRequest",
-    ]);
+    $context = stream_context_create($options);
 
     for ($i = 0; $i < $retries; $i++) {
-        $response = curl_exec($ch);
+        $response = @file_get_contents($url, false, $context);
 
         if ($response === false) {
-            echo "cURL Error: " . curl_error($ch) . "\n";
-            break; // Exit the loop if cURL fails
+            echo "Attempt " . ($i + 1) . " failed to fetch data.\n";
+            sleep(2); // Wait before retrying
+            continue;
         }
 
         $data = json_decode($response, true);
 
-        // Check for expected structure
+        // Check if data is structured as expected
         if (isset($data['data']) && is_array($data['data'])) {
-            curl_close($ch);
-            unlink($cookieFile); // Clean up cookie file
             return $data['data'];
         }
 
-        // Retry after a short wait
-        sleep(2);
+        sleep(2); // Wait before retrying if data is not in expected format
     }
 
-    curl_close($ch);
-    unlink($cookieFile); // Clean up cookie file
     return null; // Return null if all retries fail
 }
 
+// Define the URL for fetching data
 $nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050";
 $data = fetchStockData($nse_url);
 
@@ -51,9 +46,11 @@ if ($data === null) {
     exit;
 }
 
-// Processing data: filtering and sorting for top gainers
+// Process and filter stock data
 $stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
 usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
+
+// Prepare for displaying in HTML
 $lastUpdated = date("Y-m-d H:i:s");
 ?>
 
@@ -102,19 +99,15 @@ $lastUpdated = date("Y-m-d H:i:s");
     <!-- JavaScript for Auto-Refresh -->
     <script>
         function updateStockData() {
-            $.ajax({
-                url: 'https://projectdemo2.vercel.app/api/index.php', // Change to your PHP file URL
-                success: function(data) {
-                    // Update the stock data table
-                    $('#stockData').html($(data).find('#stockData').html());
-                    // Update the last updated time
-                    $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
-                }
+            $.get("2.php", function(data) {
+                // Update the stock data table
+                $('#stockData').html($(data).find('#stockData').html());
+                // Update the last updated time
+                $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
             });
         }
 
-        // Set interval for every 5 seconds
-        setInterval(updateStockData, 5000); 
+        setInterval(updateStockData, 5000); // 5000ms = 5 seconds
     </script>
 </body>
 </html>
