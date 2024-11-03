@@ -42,36 +42,53 @@ function fetchStockData($url, $retries = 3) {
     return null; // Return null if all retries fail
 }
 
-$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050";
-$data = fetchStockData($nse_url);
+// get function to manage stock data fetching
+function get($url) {
+    $data = fetchStockData($url);
 
-if ($data === null) {
-    echo json_encode(["error" => "Could not fetch stock data after multiple attempts."]);
+    if ($data === null) {
+        return [
+            "error" => "Could not fetch stock data after multiple attempts.",
+            "data" => []
+        ];
+    }
+
+    // Filter and sort top gainers
+    $stocks = array_filter($data, fn($stock) => isset($stock['pChange']) && $stock['pChange'] > 0);
+    usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
+
+    return [
+        "error" => null,
+        "data" => $stocks
+    ];
+}
+
+// Usage
+$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050";
+$response = get($nse_url);
+
+if ($response['error']) {
+    echo json_encode(["error" => $response['error']]);
     exit;
 }
 
-// Your logic for processing $data
-// Example: filtering and sorting top gainers
-$stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
-usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
-
-// Prepare for displaying in HTML
+// Process and display data if available
+$stocks = array_slice($response['data'], 0, 10); // Top 10 gainers
 $lastUpdated = date("Y-m-d H:i:s");
-?>
 
+?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Gainers - Nifty 500 Pre-market</title>
+    <title>Top Gainers - Nifty 50</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="container my-5">
-        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
+        <h2 class="text-center mb-4">Nifty 50 Stocks - Top Gainers</h2>
         <p class="text-center" id="lastUpdated">Last Updated: <?php echo $lastUpdated; ?></p>
         <table class="table table-striped table-hover">
             <thead>
@@ -84,7 +101,7 @@ $lastUpdated = date("Y-m-d H:i:s");
             </thead>
             <tbody id="stockData">
                 <?php
-                foreach (array_slice($stocks, 0, 10) as $stock) {
+                foreach ($stocks as $stock) {
                     $symbol = $stock['symbol'] ?? 'N/A';
                     $companyName = $stock['companyName'] ?? $symbol; // Use symbol if companyName is missing
                     $lastPrice = $stock['lastPrice'] ?? 'N/A';
@@ -101,19 +118,5 @@ $lastUpdated = date("Y-m-d H:i:s");
             </tbody>
         </table>
     </div>
-
-    <!-- JavaScript for Auto-Refresh -->
-    <script>
-        function updateStockData() {
-            $.get("2.php", function(data) {
-                // Update the stock data table
-                $('#stockData').html($(data).find('#stockData').html());
-                // Update the last updated time
-                $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
-            });
-        }
-
-        setInterval(updateStockData, 5000); // 5000ms = 5 seconds
-    </script>
 </body>
 </html>
