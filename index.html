@@ -3,70 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nifty 50 Top Gainers</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Top 10 Gainers - NIFTY 50</title>
+    <style>
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-    <div class="container my-5">
-        <h2 class="text-center mb-4">Nifty 50 Stocks - Top Gainers (Pre-market)</h2>
-        <p class="text-center" id="lastUpdated"></p>
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Stock Symbol</th>
-                    <th>Company Name</th>
-                    <th>Last Price</th>
-                    <th>% Change</th>
-                </tr>
-            </thead>
-            <tbody id="stockData">
-                <tr>
-                    <td colspan="4" class="text-center">Loading...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <h1 style="text-align: center;">Top 10 Gainers - NIFTY 50</h1>
+    <p style="text-align: center;" id="lastUpdatedTime">Last Updated: -</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Stock Name</th>
+                <th>LTP (₹)</th>
+                <th>% Change</th>
+            </tr>
+        </thead>
+        <tbody id="gainersTable">
+            <!-- Dynamic content will be injected here -->
+        </tbody>
+    </table>
 
     <script>
-        function fetchStockData() {
-            $.ajax({
-                url: 'https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050',
-                method: 'GET',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0',
-                    'Accept': 'application/json, text/plain, */*',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: function(data) {
-                    const stocks = data.data.filter(stock => stock.pChange > 0); // Filter top gainers
-                    stocks.sort((a, b) => b.pChange - a.pChange); // Sort by percentage change
-                    $('#stockData').empty(); // Clear loading message
-
-                    stocks.slice(0, 10).forEach(stock => {
-                        const row = `
-                            <tr>
-                                <td>${stock.symbol || 'N/A'}</td>
-                                <td>${stock.companyName || stock.symbol}</td>
-                                <td>₹${stock.lastPrice || 'N/A'}</td>
-                                <td>${stock.pChange || 'N/A'}%</td>
-                            </tr>
-                        `;
-                        $('#stockData').append(row);
-                    });
-
-                    $('#lastUpdated').text("Last Updated: " + new Date().toLocaleString());
-                },
-                error: function(xhr, status, error) {
-                    $('#stockData').html('<tr><td colspan="4" class="text-center">Error fetching data. Please try again later.</td></tr>');
-                    console.error("Error fetching stock data:", error);
-                }
-            });
+        // Function to format time in 12-hour format
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            const hours = date.getHours() % 12 || 12;
+            const minutes = date.getMinutes().toString().padStart(2, "0");
+            const ampm = date.getHours() >= 12 ? "PM" : "AM";
+            return `${hours}:${minutes} ${ampm}`;
         }
 
-        // Fetch stock data on page load and every 30 seconds
-        fetchStockData();
-        setInterval(fetchStockData, 30000);
+        // Function to load data from the serverless function
+        async function loadData() {
+            try {
+                const response = await fetch('/api/fetchNiftyData');
+                const data = await response.json();
+
+                if (!data.data) {
+                    console.error("Error: Data format is incorrect");
+                    return;
+                }
+
+                // Sort by percentage change
+                const sortedData = data.data.sort((a, b) => b.pChange - a.pChange);
+                const topGainers = sortedData.slice(0, 10);
+
+                // Get the last updated time and format it
+                const lastUpdatedTime = formatTime(data.data[0].lastUpdateTime);
+                document.getElementById("lastUpdatedTime").textContent = `Last Updated: ${lastUpdatedTime}`;
+
+                // Populate the table with top gainers
+                const tableBody = document.getElementById("gainersTable");
+                tableBody.innerHTML = ""; // Clear previous data
+
+                topGainers.forEach(stock => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${stock.symbol}</td>
+                        <td>${stock.lastPrice.toFixed(2)}</td>
+                        <td>${stock.pChange.toFixed(2)}%</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            }
+        }
+
+        // Initial data load
+        loadData();
+
+        // Auto-refresh every 5 minutes (300000 milliseconds)
+        setInterval(loadData, 300000);
     </script>
 </body>
 </html>
