@@ -2,14 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/fetchData.php",
+      "src": "api/*.php",
       "use": "@vercel/php"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api/fetchData",
-      "dest": "api/fetchData.php"
+      "src": "/api/(.*)",
+      "dest": "/api/$1.php"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
     }
   ]
 }
