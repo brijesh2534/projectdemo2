@@ -1,36 +1,64 @@
 <?php
 function fetchStockData($url, $retries = 3) {
-    for ($i = 0; $i < $retries; $i++) {
-        // Fetch the data using file_get_contents
-        $response = @file_get_contents($url); // Use @ to suppress warnings
+    $cookieFile = tempnam(sys_get_temp_dir(), 'cookie'); // Temporary file for cookies
+    $ch = curl_init();
 
-        if ($response !== false) {
-            $data = json_decode($response, true);
-            if (isset($data['data']) && is_array($data['data'])) {
-                return $data['data'];
-            }
+    // Set cURL options
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile); // Store cookies
+    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile); // Send cookies
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
+        "Accept: application/json, text/plain, */*",
+        "Referer: https://www.nseindia.com/",
+        "X-Requested-With: XMLHttpRequest",
+    ]);
+
+    for ($i = 0; $i < $retries; $i++) {
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            echo "cURL Error: " . curl_error($ch) . "\n";
+            break; // Exit the loop if cURL fails
         }
 
-        // Wait a second before retrying
-        sleep(1);
+        $data = json_decode($response, true);
+        
+        // Check for expected structure
+        if (isset($data['data']) && is_array($data['data'])) {
+            curl_close($ch);
+            unlink($cookieFile); // Clean up cookie file
+            return $data['data'];
+        }
+
+        // If we don't get valid data, wait a bit and retry
+        sleep(2);
     }
 
+    curl_close($ch);
+    unlink($cookieFile); // Clean up cookie file
     return null; // Return null if all retries fail
 }
 
-$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500";
+$nse_url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050";
 $data = fetchStockData($nse_url);
 
 if ($data === null) {
-    echo "Error: Could not fetch stock data after multiple attempts.";
+    echo json_encode(["error" => "Could not fetch stock data after multiple attempts."]);
     exit;
 }
 
-// Filter and sort top gainers
+// Your logic for processing $data
+// Example: filtering and sorting top gainers
 $stocks = array_filter($data, fn($stock) => $stock['pChange'] > 0);
 usort($stocks, fn($a, $b) => $b['pChange'] <=> $a['pChange']);
-$lastUpdated = date("Y-m-d H:i:s"); // Store last updated time
+
+// Prepare for displaying in HTML
+$lastUpdated = date("Y-m-d H:i:s");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +105,7 @@ $lastUpdated = date("Y-m-d H:i:s"); // Store last updated time
     <!-- JavaScript for Auto-Refresh -->
     <script>
         function updateStockData() {
-            $.get("1.php", function(data) {
+            $.get("2.php", function(data) {
                 // Update the stock data table
                 $('#stockData').html($(data).find('#stockData').html());
                 // Update the last updated time
