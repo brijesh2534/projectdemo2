@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Gainers - Nifty 500</title>
+    <title>Top Gainers - Nifty 500 Pre-market</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="container my-5">
-        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers</h2>
+        <h2 class="text-center mb-4">Nifty 500 Stocks - Top Gainers (Pre-market)</h2>
+        <p class="text-center" id="lastUpdated">Last Updated: <span id="updatedTime"></span></p>
         <table class="table table-striped table-hover">
             <thead>
                 <tr>
@@ -25,40 +27,42 @@
     <script>
         async function fetchStockData() {
             try {
-                const response = await fetch('api/index.php');
+                const response = await fetch("https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500", {
+                    method: 'GET',
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+                    }
+                });
+
                 const data = await response.json();
-
-                // Check if data is valid
-                if (data.error) {
-                    document.getElementById("stockData").innerHTML = "<tr><td colspan='4'>" + data.error + "</td></tr>";
-                    return;
-                }
-
-                // Filter and sort top gainers
                 const stocks = data.data.filter(stock => stock.pChange > 0);
                 stocks.sort((a, b) => b.pChange - a.pChange);
 
-                // Display the top gainers in the table
-                let rows = "";
+                const stockDataContainer = document.getElementById("stockData");
+                stockDataContainer.innerHTML = '';
+
                 stocks.slice(0, 10).forEach(stock => {
-                    rows += `
+                    const row = `
                         <tr>
-                            <td>${stock.symbol}</td>
-                            <td>${stock.companyName}</td>
-                            <td>₹${stock.lastPrice}</td>
-                            <td>${stock.pChange}%</td>
+                            <td>${stock.symbol ?? 'N/A'}</td>
+                            <td>${stock.companyName ?? stock.symbol}</td>
+                            <td>₹${stock.lastPrice ?? 'N/A'}</td>
+                            <td>${stock.pChange ?? 'N/A'}%</td>
                         </tr>
                     `;
+                    stockDataContainer.innerHTML += row;
                 });
-                document.getElementById("stockData").innerHTML = rows;
+
+                // Update the last updated time
+                document.getElementById("updatedTime").innerText = new Date().toLocaleString();
             } catch (error) {
                 console.error("Error fetching stock data:", error);
-                document.getElementById("stockData").innerHTML = "<tr><td colspan='4'>Error loading data</td></tr>";
             }
         }
 
-        // Fetch data on page load
+        // Fetch stock data on page load and update every 5 seconds
         fetchStockData();
+        setInterval(fetchStockData, 5000);
     </script>
 </body>
 </html>
