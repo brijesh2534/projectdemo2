@@ -1,27 +1,15 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/api/fetchNiftyData",
-      "destination": "/api/fetchNiftyData.js"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/fetchNiftyData",
-      "schedule": "*/5 * * * *"
-    }
-  ],
+  "version": 2,
   "builds": [
     {
-      "src": "public/index.html",
-      "use": "@vercel/static"
+      "src": "api/fetchData.php",
+      "use": "@vercel/php"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+      "src": "/api/fetchData",
+      "dest": "api/fetchData.php"
     }
   ]
 }
